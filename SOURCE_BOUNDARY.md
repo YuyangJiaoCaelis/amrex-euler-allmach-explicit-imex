@@ -1,6 +1,6 @@
 # Source Boundary
 
-This package is the report-facing AMReX Euler comparison source. It keeps the source needed to build and reproduce the submitted figures for:
+This repository is the AMReX Euler comparison source. It keeps the source needed to build and reproduce the project figures for:
 
 - Explicit O2 HLLC.
 - Explicit O2 Low-Mach Corrected HLLC-P.
@@ -20,6 +20,6 @@ declares the application driver. The implementation modules under
 device-oriented explicit kernels, host-side IMEX pressure solves, physical
 problem setup, and output routines visible as different parts of the codebase.
 
-The enum types retain a few additional slope limiter, Riemann solver, and problem identifiers used while checking solver behaviour. The report reproduction scripts use only the three scheme selectors and four test families listed above.
+The enum types retain a few additional slope-limiter, Riemann-solver, and problem identifiers used by the solver configuration system. The reproduction scripts use the three scheme selectors and four test families listed above.
 
-Earlier two-material shock-bubble transfer files and standalone development checks have been removed from this preserved copy. The remaining code paths are the paths used by the report reproduction scripts in `PROJECT_PLOT_REPRODUCTION.md`.
+The main reproducible code paths are listed in `PROJECT_PLOT_REPRODUCTION.md`.

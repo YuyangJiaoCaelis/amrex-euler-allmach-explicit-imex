@@ -12,9 +12,9 @@
 - `scripts/*.py`
 - `reproduce_project_data.sh`
 
-The AMReX application layout and makefile structure follow the public AMReX tutorial style for a single-level application. The Euler schemes, MPhil project test cases, metrics, and plotting scripts were written for this project.
+The AMReX application layout and makefile structure follow the public AMReX tutorial style for a single-level application. The Euler schemes, project test cases, metrics, and plotting scripts were written for this project.
 
-The preserved source copy excludes earlier development-only shock-bubble transfer files. The retained source is the AMReX application and reproduction scripts used for the reported schemes and tests.
+The retained source is the AMReX application and reproduction scripts used for the scheme and test comparisons.
 
 ## External Code
 
@@ -23,4 +23,4 @@ The preserved source copy excludes earlier development-only shock-bubble transfe
 | `external/AMReX/` | AMReX framework source used for `MultiFab`, geometry, tiling, boundary handling, reductions, and the GNUmake build system. |
 | `external/eigen3/` | Eigen header library used for sparse matrices and host linear solves in the IMEX pressure step. |
 
-The external directories are included so the marker can build the supplied AMReX app without reconstructing the dependency layout.
+The external directories are included so the supplied AMReX app can be built without reconstructing the dependency layout.

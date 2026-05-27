@@ -1,17 +1,17 @@
-# Full Report-Data Reproduction Pass - 2026-05-26
+# Full Reproduction Record
 
 ## Scope
 
-This pass reran the full Report-1 AMReX evidence set from the clean structured
-source package:
+This run regenerated the full AMReX evidence set from the structured source
+package:
 
-`/Users/yuyangjiao/Desktop/MPhilresearch/amrex_euler_research_codebase_2026-05-26`
+the repository root.
 
 The run used the external-output wrapper:
 
 ```bash
 amrex/apps/euler_compare/benchmarks/report_reproduction/run_report_reproduction.sh \
-  /Users/yuyangjiao/Desktop/MPhilresearch/research_codebase_full_reproduction_2026-05-26_clean_structured_190802
+  ../euler_compare_full_reproduction
 ```
 
 ## Result
@@ -42,10 +42,9 @@ The generated output root contained:
 A status scan over the relevant rerun summary and metrics CSV files checked 46
 CSV files and found 0 non-ok entries.
 
-All Chapter-4 report figures were compared against the final Overleaf source.
-After refreshing the final Overleaf source with the regenerated figures, all 16
-Chapter-4 figure files in the source and in the Overleaf zip matched the rerun
-outputs by file hash.
+The generated figures were compared against the final project figure set. After
+refreshing the project source with the regenerated figures, all 16 result-figure
+files matched the rerun outputs by file hash.
 
 ## Timing Note
 

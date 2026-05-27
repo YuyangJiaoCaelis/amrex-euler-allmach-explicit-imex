@@ -1,6 +1,6 @@
-# MPhil project Code Submission
+# AMReX Euler All-Mach Explicit/IMEX
 
-This package contains the code used for the AMReX Euler results in Yuyang Jiao's MPhil project.
+This repository contains a two-dimensional AMReX finite-volume code for comparing explicit and IMEX schemes for the compressible Euler equations. It is organised as a reproducible scientific-computing codebase: the solver sources, test cases, plotting scripts, and figure-regeneration commands are kept together.
 
 ## Contents
 
@@ -13,16 +13,16 @@ This package contains the code used for the AMReX Euler results in Yuyang Jiao's
 | `scripts/` | Project-written Python scripts that run the MPhil project evidence rows and regenerate the report figures. |
 | `external/AMReX/` | Third-party AMReX framework source needed for the local GNUmake build. |
 | `external/eigen3/` | Third-party Eigen headers used by the host sparse linear algebra and GMRES pressure solve. |
-| `PROJECT_PLOT_REPRODUCTION.md` | Command map from each report figure to the scripts and AMReX rows that produce it. |
+| `PROJECT_PLOT_REPRODUCTION.md` | Command map from each project figure to the scripts and AMReX rows that produce it. |
 | `PROJECT_CODE_MAP.md` | Short guide to the project-facing regions of the AMReX driver. |
 | `ARCHITECTURE.md` | Higher-level source layout and data-flow guide for the AMReX implementation. |
 | `REPORT2_HARDWARE_TRANSITION.md` | CPU/MPI/CUDA transition plan and current hardware-readiness boundary. |
-| `SOURCE_BOUNDARY.md` | Short statement of the schemes, tests, and helper modules retained in this preserved source copy. |
+| `SOURCE_BOUNDARY.md` | Short statement of the schemes, tests, and helper modules retained in this source tree. |
 | `scripts/run_project_smoke_matrix.py` | Compact build-check matrix for the three reported schemes on the four retained test families. |
 | `THIRD_PARTY_CODE.md` | Authorship and external-code notes. |
 | `CHANGES_FROM_TUTORIAL.md` | Short provenance note separating AMReX tutorial layout conventions from project-specific solver and analysis code. |
 | `README_PROJECT_SETTINGS.md` | Compact list of report scheme selectors, boundary conditions, final times, and output roots. |
-| `verification/` | Short record of the latest completed reproduction check and report-figure manifest. Long logs and generated figures are excluded from this clean source package. |
+| `verification/` | Short record of the latest completed build and reproduction checks. Long logs and generated figures are excluded from the source tree. |
 
 The project figures use the three scheme selectors below. For code reading, start with `ARCHITECTURE.md` and `PROJECT_CODE_MAP.md`; they point to the source files used by the reproduced figures.
 
@@ -32,7 +32,7 @@ The project figures use the three scheme selectors below. For code reading, star
 | Explicit O2 Low-Mach Corrected HLLC-P | `euler.method=explicit`, `euler.spatial_order=2`, `euler.riemann=xie_am_hllc_p` |
 | IMEX T1/S2 BDLTV20 | `euler.method=imex`, `euler.imex_form=bdltv20_t1_s2_source_map_picard`, `euler.spatial_order=2` |
 
-The MPhil project shock-density-bubble evidence uses the single-material same-gamma Cartesian case. The AMReX driver is compiled as one application so the supplied GNUmake build is the same build used for the report runs. Earlier exploratory shock-bubble transfer files and development-only modes are excluded from this preserved report-facing package. The selectable IMEX path in this package is the reported BDLTV20 T1/S2 source-map pressure-split scheme.
+The shock-density-bubble evidence uses a single-material same-gamma Cartesian case. The AMReX driver is compiled as one application, so the supplied GNUmake build is the same build used for all reproduced runs. The selectable IMEX path is the BDLTV20 T1/S2 source-map pressure-split scheme.
 
 ## Build
 
@@ -68,7 +68,7 @@ python3 -m pip install -r requirements.txt
 
 ## Reproducing Figures
 
-The full figure-generation commands are listed in `PROJECT_PLOT_REPRODUCTION.md`. The wrapper below gives the same command groups:
+The full figure-generation commands are listed in `PROJECT_PLOT_REPRODUCTION.md`. The wrapper below provides the same command groups:
 
 ```bash
 ./reproduce_project_data.sh riemann

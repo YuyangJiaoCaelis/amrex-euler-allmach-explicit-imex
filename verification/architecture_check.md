@@ -1,10 +1,9 @@
-# Final Architecture Pass - 2026-05-26
+# Architecture Check
 
 ## Scope
 
-This pass prepared the future-development AMReX Euler package for long-term
-research use before any further full reproduction run. The frozen Report-1
-snapshot was left untouched.
+This check verifies the organised AMReX Euler source tree before longer
+reproduction or benchmarking runs.
 
 ## Structural Changes
 
@@ -31,10 +30,6 @@ snapshot was left untouched.
   smoke verification.
 - Updated the full reproduction wrapper so a full run can write `results/` and
   `project_outputs/` through temporary links into an external output root.
-- Archived the interrupted partial reproduction outputs outside this source
-  package at:
-  `/Users/yuyangjiao/Desktop/MPhilresearch/research_codebase_interrupted_outputs_2026-05-26`.
-
 ## Verification
 
 Build:
@@ -50,7 +45,7 @@ Compact smoke:
 
 ```bash
 amrex/apps/euler_compare/tests/smoke/run_smoke_matrix.sh \
-  /Users/yuyangjiao/Desktop/MPhilresearch/research_codebase_verification_2026-05-26/hardware_architecture_smoke
+  ../euler_compare_smoke
 ```
 
 Result: all 12 rows passed.
@@ -63,9 +58,7 @@ Rows covered:
 - Periodic advection blob at 32x32: the same three schemes.
 - Same-gamma shock-density-bubble at 160x40: the same three schemes.
 
-The smoke summary is:
-
-`/Users/yuyangjiao/Desktop/MPhilresearch/research_codebase_verification_2026-05-26/hardware_architecture_smoke/summary.csv`
+The smoke summary is written to the output directory supplied to the script.
 
 This is a serial CPU verification of the reorganised source tree. It does not
 claim MPI, CUDA, GPU, or multi-core performance readiness.
@@ -79,22 +72,20 @@ Final source-tree hygiene after verification:
 - no executable build product;
 - no Python cache files.
 
-## Freeze Decision
+## Reproduction Readiness
 
-The future-development package is now suitable for the next full reproduction
-run. Do not request another layout polish before that run unless one of these
-specific problems appears:
+The package is suitable for full reproduction runs unless one of these specific
+problems appears:
 
 - build failure;
 - smoke-matrix failure;
 - a reported scheme is missing or renamed incorrectly;
 - a generated figure cannot be traced to a command and data file;
-- earlier development-only shock-bubble paths re-enter the report-facing source
-  path.
+- a comparison case listed in `PROJECT_CODE_MAP.md` cannot be selected.
 
-The next full reproduction should use an external output root, for example:
+Full reproduction should use an external output root, for example:
 
 ```bash
 amrex/apps/euler_compare/benchmarks/report_reproduction/run_report_reproduction.sh \
-  /Users/yuyangjiao/Desktop/MPhilresearch/research_codebase_full_reproduction_2026-05-26
+  ../euler_compare_full_reproduction
 ```
