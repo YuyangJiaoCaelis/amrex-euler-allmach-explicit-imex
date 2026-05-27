@@ -1,0 +1,23 @@
+# Minimal project-owned AMReX smoke input.  Command-line overrides select the
+# Riemann, Gresho, advection-blob, and shock-density-bubble evidence rows.
+
+max_step = 8
+stop_time = 0.05
+
+amr.n_cell = 64 64
+amr.max_grid_size = 32
+amr.plot_file = plt
+amr.plot_int = 8
+
+geometry.prob_lo = 0.0 0.0
+geometry.prob_hi = 1.0 1.0
+geometry.is_periodic = 1 1
+
+euler.gamma = 1.4
+euler.cfl = 0.4
+euler.velocity = 1.0 0.5
+euler.density_inner = 2.0
+euler.density_outer = 1.0
+euler.pressure = 1.0
+euler.blob_center = 0.35 0.35
+euler.blob_radius = 0.15

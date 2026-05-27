@@ -1,0 +1,6 @@
+# The executable entry point is deliberately thin.  The AMReX application logic
+# is compiled from euler_compare_app.cpp, with internal implementation modules
+# kept under src/euler_compare/ and the small public entry declaration under
+# include/euler_compare/.
+CEXE_sources += main.cpp euler_compare_app.cpp
+INCLUDE_LOCATIONS += include src ../../../external/eigen3

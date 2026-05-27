@@ -1,0 +1,12 @@
+amrex/apps/euler_compare/amrex_euler_compare*.gnu.ex
+amrex/apps/euler_compare/tmp_build_dir/
+amrex/apps/euler_compare/Backtrace.*
+amrex/apps/euler_compare/plt*/
+amrex/apps/euler_compare/plt*.old.*/
+results/
+project_outputs/
+verification/final_smoke*/
+verification/report_plot_before_after*/
+__pycache__/
+*.pyc
+.DS_Store
