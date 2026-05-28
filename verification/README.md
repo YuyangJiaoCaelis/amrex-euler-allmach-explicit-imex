@@ -14,3 +14,7 @@ Current architecture verification:
 Current full reproduction record:
 
 `reproduction_record.md`
+
+Current Report 2 next-research readiness gate:
+
+`report2_next_research_readiness_2026-05-28.md`
