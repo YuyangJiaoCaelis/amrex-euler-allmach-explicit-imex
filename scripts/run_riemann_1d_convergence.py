@@ -21,6 +21,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from riemann_exact import RiemannState, sample, solve_star_region
+from run_manifest import environment_build_flags, utc_now, write_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,6 +115,7 @@ def main() -> None:
         RESULTS / "fields",
         RESULTS / "logs",
         RESULTS / "commands",
+        RESULTS / "manifests",
         PACKAGE / "figures",
         PACKAGE / "source_data/fields",
         PACKAGE / "source_data/logs",
@@ -162,6 +164,7 @@ def run_case(case: Case, scheme: Scheme, n: int) -> dict[str, str]:
     field_csv = RESULTS / "fields" / f"{stem}.csv"
     log_path = RESULTS / "logs" / f"{stem}.log"
     command_path = RESULTS / "commands" / f"{stem}.command.txt"
+    manifest_path = RESULTS / "manifests" / f"{stem}.manifest.json"
     cmd = base_command(case, n, field_csv)
     if scheme.method == "explicit":
         cmd += [
@@ -191,6 +194,7 @@ def run_case(case: Case, scheme: Scheme, n: int) -> dict[str, str]:
         ]
 
     command_path.write_text(" ".join(shell_quote(part) for part in cmd) + "\n")
+    start_utc = utc_now()
     started = time.perf_counter()
     completed = subprocess.run(
         cmd,
@@ -201,7 +205,24 @@ def run_case(case: Case, scheme: Scheme, n: int) -> dict[str, str]:
         check=False,
     )
     elapsed = time.perf_counter() - started
+    end_utc = utc_now()
     log_path.write_text(completed.stdout)
+    write_manifest(
+        manifest_path,
+        root=ROOT,
+        row_id=stem,
+        command=cmd,
+        start_utc=start_utc,
+        end_utc=end_utc,
+        wall_time_s=elapsed,
+        exit_code=completed.returncode,
+        output_root=RESULTS,
+        output_class="candidate",
+        input_files=[INPUTS],
+        output_files=[field_csv, log_path, command_path],
+        build_flags=environment_build_flags({"DIM": "2"}),
+        notes="1D Riemann refinement row embedded in a 2D AMReX grid",
+    )
     log_keys = parse_log(log_path)
     row = {
         "case": case.key,
@@ -235,6 +256,7 @@ def run_case(case: Case, scheme: Scheme, n: int) -> dict[str, str]:
         "field_csv": str(field_csv),
         "log": str(log_path),
         "command": str(command_path),
+        "manifest": str(manifest_path),
     }
     ok = completed.returncode == 0 and field_csv.exists()
     print(f"{'OK' if ok else 'ERROR'} {case.key} {scheme.key} n={n}")
@@ -432,6 +454,7 @@ def copy_source_artifacts(run_rows: list[dict[str, str]]) -> None:
             ("field_csv", "fields"),
             ("log", "logs"),
             ("command", "commands"),
+            ("manifest", "manifests"),
         ]:
             src = restore_canonical_artifact(Path(run[key]))
             dst = PACKAGE / "source_data" / target_subdir / src.name

@@ -4,6 +4,7 @@ These scripts run the AMReX rows and regenerate the figures used in MPhil projec
 
 | Script | Purpose |
 |---|---|
+| `run_manifest.py` | Shared helper and command wrapper for writing JSON provenance manifests for AMReX run rows. |
 | `run_riemann_1d_convergence.py` | Runs the Riemann refinement rows for the three report schemes. |
 | `riemann_exact.py` | Exact Riemann solver imported by the Riemann runner and refresh scripts. |
 | `plot_riemann_1d_overlays.py` | Builds the exact-Riemann overlay and IMEX Toro 3/4 refinement figures from the Riemann package. |

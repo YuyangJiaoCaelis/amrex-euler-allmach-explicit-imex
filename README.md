@@ -22,6 +22,7 @@ This repository contains a two-dimensional AMReX finite-volume code for comparin
 | `THIRD_PARTY_CODE.md` | Authorship and external-code notes. |
 | `CHANGES_FROM_TUTORIAL.md` | Short provenance note separating AMReX tutorial layout conventions from project-specific solver and analysis code. |
 | `README_PROJECT_SETTINGS.md` | Compact list of report scheme selectors, boundary conditions, final times, and output roots. |
+| `docs/RESEARCH_WORKFLOW.md`, `docs/scheme_promotion_checklist.md` | Report 2 workflow guardrails for separating exploratory work, candidate runs, and report-facing evidence. |
 | `verification/` | Short record of the latest completed build and reproduction checks. Long logs and generated figures are excluded from the source tree. |
 
 The project figures use the three scheme selectors below. For code reading, start with `ARCHITECTURE.md` and `PROJECT_CODE_MAP.md`; they point to the source files used by the reproduced figures.

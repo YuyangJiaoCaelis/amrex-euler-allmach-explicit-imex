@@ -26,6 +26,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from run_manifest import environment_build_flags, utc_now, write_manifest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "amrex/apps/euler_compare/amrex_euler_compare2d.gnu.ex"
@@ -278,7 +280,8 @@ def command_for(
     raise ValueError(scheme.key)
 
 
-def run_command(command: list[str], log_path: Path, timeout: float) -> tuple[int, str, str, float]:
+def run_command(command: list[str], log_path: Path, timeout: float) -> tuple[int, str, str, float, str, str]:
+    start_utc = utc_now()
     start = time.perf_counter()
     proc = subprocess.run(
         command,
@@ -288,6 +291,7 @@ def run_command(command: list[str], log_path: Path, timeout: float) -> tuple[int
         timeout=timeout,
     )
     elapsed = time.perf_counter() - start
+    end_utc = utc_now()
     log_path.write_text(
         "$ "
         + shell_join(command)
@@ -296,7 +300,7 @@ def run_command(command: list[str], log_path: Path, timeout: float) -> tuple[int
         + "\n[stderr]\n"
         + proc.stderr
     )
-    return proc.returncode, proc.stdout, proc.stderr, elapsed
+    return proc.returncode, proc.stdout, proc.stderr, elapsed, start_utc, end_utc
 
 
 def make_plots(rows: list[dict[str, str]], output_dir: Path) -> None:
@@ -573,12 +577,14 @@ def main() -> None:
     logs_dir = output_dir / "logs"
     fields_dir = output_dir / "fields"
     command_dir = output_dir / "commands"
-    for path in (logs_dir, fields_dir, command_dir):
+    manifests_dir = output_dir / "manifests"
+    for path in (logs_dir, fields_dir, command_dir, manifests_dir):
         path.mkdir(parents=True, exist_ok=True)
     output_dir = output_dir.resolve()
     logs_dir = logs_dir.resolve()
     fields_dir = fields_dir.resolve()
     command_dir = command_dir.resolve()
+    manifests_dir = manifests_dir.resolve()
 
     rows: list[dict[str, str]] = []
     for mach in split_csv_floats(args.machs):
@@ -588,6 +594,7 @@ def main() -> None:
                 final_csv = fields_dir / f"{row_id}_final.csv"
                 log_path = logs_dir / f"{row_id}.log"
                 command_path = command_dir / f"{row_id}.txt"
+                manifest_path = manifests_dir / f"{row_id}.manifest.json"
                 command = command_for(scheme, mach, n, args, final_csv)
                 command_path.write_text(shell_join(command) + "\n")
                 row = {
@@ -617,6 +624,7 @@ def main() -> None:
                     "final_csv": str(final_csv),
                     "run_log": str(log_path),
                     "command_file": str(command_path),
+                    "manifest": str(manifest_path),
                     "claim_scope": (
                         "AMReX Gresho reference matrix; "
                         "exact Dirichlet and 0.4*pi final time when field_boundary=exact_dirichlet; "
@@ -626,10 +634,11 @@ def main() -> None:
                 if not args.dry_run:
                     print(f"[run] {row_id}", flush=True)
                     try:
-                        returncode, stdout, stderr, elapsed = run_command(
+                        returncode, stdout, stderr, elapsed, start_utc, end_utc = run_command(
                             command, log_path, args.row_timeout_sec
                         )
                     except subprocess.TimeoutExpired as exc:
+                        start_utc = end_utc = utc_now()
                         log_path.write_text(
                             "$ "
                             + shell_join(command)
@@ -637,9 +646,41 @@ def main() -> None:
                             + (exc.stdout or "")
                             + (exc.stderr or "")
                         )
+                        write_manifest(
+                            manifest_path,
+                            root=ROOT,
+                            row_id=row_id,
+                            command=command,
+                            start_utc=start_utc,
+                            end_utc=end_utc,
+                            wall_time_s=args.row_timeout_sec,
+                            exit_code="timeout",
+                            output_root=output_dir,
+                            output_class="candidate",
+                            input_files=[ROOT / "amrex/apps/euler_compare/inputs-ci"],
+                            output_files=[final_csv, log_path, command_path],
+                            build_flags=environment_build_flags({"DIM": "2"}),
+                            notes="Gresho reference matrix row timed out",
+                        )
                         row.update({"status": "timed_out", "returncode": "timeout"})
                         rows.append(row)
                         continue
+                    write_manifest(
+                        manifest_path,
+                        root=ROOT,
+                        row_id=row_id,
+                        command=command,
+                        start_utc=start_utc,
+                        end_utc=end_utc,
+                        wall_time_s=elapsed,
+                        exit_code=returncode,
+                        output_root=output_dir,
+                        output_class="candidate",
+                        input_files=[ROOT / "amrex/apps/euler_compare/inputs-ci"],
+                        output_files=[final_csv, log_path, command_path],
+                        build_flags=environment_build_flags({"DIM": "2"}),
+                        notes="Gresho reference matrix row",
+                    )
                     text = stdout + "\n" + stderr
                     kv = parse_kv(text)
                     row.update(

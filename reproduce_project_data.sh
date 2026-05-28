@@ -37,15 +37,28 @@ shock_density_bubble() {
     local root=$3
     local riemann=$4
     local prefix=$5
+    local row_id="${prefix}_${nx}x${ny}"
+    local final_csv="$root/${row_id}_summary.csv"
+    local snapshot_dir="$root/${row_id}_snapshots"
     mkdir -p "$root"
-    "$EXE" "$INPUT" \
+    python3 scripts/run_manifest.py run \
+      --root "$ROOT" \
+      --row-id "$row_id" \
+      --output-dir "$root" \
+      --log "$root/${row_id}.log" \
+      --command-file "$root/commands/${row_id}.txt" \
+      --input-file "$INPUT" \
+      --output-file "$final_csv" \
+      --output-glob "$snapshot_dir/*" \
+      --output-class "${RUN_OUTPUT_CLASS:-candidate}" \
+      --notes "same-gamma shock-density-bubble explicit row" \
+      -- "$EXE" "$INPUT" \
       max_step=200000 stop_time=0.3 amr.n_cell="$nx $ny" amr.max_grid_size=32 amr.plot_int=-1 \
       geometry.prob_lo="0 0" geometry.prob_hi="2 0.5" geometry.is_periodic="0 0" \
       euler.problem=shock_density_bubble_2d euler.method=explicit euler.spatial_order=2 \
       euler.slope_limiter=minmod euler.riemann="$riemann" euler.cfl=0.45 \
-      euler.final_csv="$root/${prefix}_${nx}x${ny}_summary.csv" \
-      euler.shock_density_bubble_snapshot_dir="$root/${prefix}_${nx}x${ny}_snapshots" \
-      > "$root/${prefix}_${nx}x${ny}.log"
+      euler.final_csv="$final_csv" \
+      euler.shock_density_bubble_snapshot_dir="$snapshot_dir"
   }
 
   run_shock_imex() {
@@ -53,8 +66,22 @@ shock_density_bubble() {
     local ny=$2
     local root=$3
     local prefix=imex_t1s2_bdltv20
+    local row_id="${prefix}_${nx}x${ny}"
+    local final_csv="$root/${row_id}_summary.csv"
+    local snapshot_dir="$root/${row_id}_snapshots"
     mkdir -p "$root"
-    "$EXE" "$INPUT" \
+    python3 scripts/run_manifest.py run \
+      --root "$ROOT" \
+      --row-id "$row_id" \
+      --output-dir "$root" \
+      --log "$root/${row_id}.log" \
+      --command-file "$root/commands/${row_id}.txt" \
+      --input-file "$INPUT" \
+      --output-file "$final_csv" \
+      --output-glob "$snapshot_dir/*" \
+      --output-class "${RUN_OUTPUT_CLASS:-candidate}" \
+      --notes "same-gamma shock-density-bubble IMEX row" \
+      -- "$EXE" "$INPUT" \
       max_step=200000 stop_time=0.3 amr.n_cell="$nx $ny" amr.max_grid_size=32 amr.plot_int=-1 \
       geometry.prob_lo="0 0" geometry.prob_hi="2 0.5" geometry.is_periodic="0 0" \
       euler.problem=shock_density_bubble_2d euler.method=imex euler.spatial_order=2 \
@@ -63,9 +90,8 @@ shock_density_bubble() {
       euler.imex_acoustic_startup=0 euler.imex_acoustic_cfl_cap=0.0 \
       euler.imex_pressure_stabilization=off euler.imex_predictor_dissipation=material \
       euler.bdltv20_paper_pressure_solver=gmres \
-      euler.final_csv="$root/${prefix}_${nx}x${ny}_summary.csv" \
-      euler.shock_density_bubble_snapshot_dir="$root/${prefix}_${nx}x${ny}_snapshots" \
-      > "$root/${prefix}_${nx}x${ny}.log"
+      euler.final_csv="$final_csv" \
+      euler.shock_density_bubble_snapshot_dir="$snapshot_dir"
   }
 
   BASE_EFF=results/amrex/same_gamma_shock_density_bubble_efficiency_divisible_2026-05-20

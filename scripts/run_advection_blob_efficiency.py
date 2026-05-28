@@ -14,6 +14,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from run_manifest import environment_build_flags, utc_now, write_manifest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 EXE = ROOT / "amrex/apps/euler_compare/amrex_euler_compare2d.gnu.ex"
@@ -99,7 +101,7 @@ SCHEMES = (
 def main() -> None:
     if OUT.exists():
         shutil.rmtree(OUT)
-    for sub in ("commands", "logs", "fields", "figures"):
+    for sub in ("commands", "logs", "fields", "figures", "manifests"):
         (OUT / sub).mkdir(parents=True, exist_ok=True)
 
     rows: list[dict[str, str]] = []
@@ -131,6 +133,8 @@ def run_or_read(n: int, scheme: Scheme) -> dict[str, str]:
     csv_path = OUT / "fields" / f"{stem}.csv"
     log_path = OUT / "logs" / f"{stem}.log"
     cmd_path = OUT / "commands" / f"{stem}.txt"
+    manifest_path = OUT / "manifests" / f"{stem}.manifest.json"
+    wall_file = OUT / "logs" / f"{stem}.driver_wall_time"
     cmd = [
         str(EXE),
         str(INPUT),
@@ -145,15 +149,37 @@ def run_or_read(n: int, scheme: Scheme) -> dict[str, str]:
     ]
     if not csv_path.exists() or not log_path.exists():
         cmd_path.write_text(" ".join(subprocess.list2cmdline([part]) for part in cmd) + "\n")
+        start_utc = utc_now()
         start = time.perf_counter()
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         wall = time.perf_counter() - start
+        end_utc = utc_now()
         log_path.write_text(proc.stdout)
-        (OUT / "logs" / f"{stem}.driver_wall_time").write_text(f"{wall:.12g}\n")
+        wall_file.write_text(f"{wall:.12g}\n")
+        exit_code: int | str = proc.returncode
         print(f"{stem} rc={proc.returncode} wall={wall:.3f}s")
     else:
-        wall = float((OUT / "logs" / f"{stem}.driver_wall_time").read_text().strip())
+        start_utc = end_utc = utc_now()
+        wall = float(wall_file.read_text().strip())
+        exit_code = "cached"
         print(f"{stem} cached wall={wall:.3f}s")
+
+    write_manifest(
+        manifest_path,
+        root=ROOT,
+        row_id=stem,
+        command=cmd,
+        start_utc=start_utc,
+        end_utc=end_utc,
+        wall_time_s=wall,
+        exit_code=exit_code,
+        output_root=OUT,
+        output_class="candidate",
+        input_files=[INPUT],
+        output_files=[csv_path, log_path, cmd_path, wall_file],
+        build_flags=environment_build_flags({"DIM": "2"}),
+        notes="periodic advection-blob efficiency row",
+    )
 
     log = parse_log(log_path)
     errors = summarize_field(csv_path, scheme.imex)
@@ -183,6 +209,7 @@ def run_or_read(n: int, scheme: Scheme) -> dict[str, str]:
         "source_csv": str(csv_path),
         "source_log": str(log_path),
         "source_command": str(cmd_path),
+        "manifest": str(manifest_path),
     }
 
 

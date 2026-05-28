@@ -10,6 +10,11 @@ cd ../../..
 
 The scripts create fresh outputs under `results/amrex/`,
 `project_outputs/test_packages/`, and `project_outputs/project_evidence/`.
+Runner scripts also write per-row JSON manifests under each output root's
+`manifests/` directory when they launch AMReX rows. These manifests record the
+git state, build flags from the environment, host information, command line,
+timestamps, exit code, and hashes for command/log/CSV artifacts used by the
+row.
 
 Several figures use measured serial wall time on the machine that runs the
 scripts. Those figures should reproduce the same schemes, grids, error trends,
