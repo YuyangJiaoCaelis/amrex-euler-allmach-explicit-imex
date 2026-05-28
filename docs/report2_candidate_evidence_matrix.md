@@ -65,6 +65,28 @@ A candidate row can support later MPI timing only if:
 This agreement matrix is not itself performance evidence. It is the gate before
 repeated timing runs and accuracy-versus-time plots.
 
+## Candidate Rank-Scan Timing
+
+After the candidate agreement matrix passes, use the rank-scan runner to collect
+first-pass MPI timing rows without per-cell final CSV output:
+
+```sh
+cd /Users/yuyangjiao/Desktop/MPhilresearch/amrex_euler_allmach_explicit_imex
+python3 scripts/run_mpi_explicit_rank_scan.py \
+  --case-set candidate \
+  --output /tmp/report2_candidate_mpi_rank_scan_2026-05-28 \
+  --ranks 1,2,4 \
+  --repeats 3 \
+  --row-timeout-sec 600 \
+  --force
+```
+
+This runner records both the Python driver wall time and the application
+reported wall time. It disables final CSV writing by default so the first
+rank-scan is closer to solver/log timing rather than output-throughput timing.
+Use the agreement matrix, not this timing runner, to validate gathered CSV
+contents.
+
 ## Latest Local Result
 
 On 2026-05-28, the candidate matrix passed from clean commit

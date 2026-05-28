@@ -86,6 +86,8 @@ For explicit MPI work, run `scripts/run_mpi_explicit_agreement.py` as the
 small-grid smoke gate before starting candidate timing rows. The first
 candidate pre-timing matrix is defined in
 `docs/report2_candidate_evidence_matrix.md`.
+After that agreement gate passes, use `scripts/run_mpi_explicit_rank_scan.py`
+for candidate MPI rank-scan timing rows.
 
 ## Diagnostics And Audits
 
