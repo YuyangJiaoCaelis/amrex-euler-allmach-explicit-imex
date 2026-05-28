@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check serial and MPI agreement for retained explicit Report 2 smoke rows."""
+"""Check serial and MPI agreement for retained explicit Report 2 rows."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class AgreementCase:
     snapshot_times: str = ""
 
 
-def explicit_cases() -> list[AgreementCase]:
+def smoke_cases() -> list[AgreementCase]:
     base = (
         "max_step=100000",
         "amr.plot_int=-1",
@@ -127,6 +127,123 @@ def explicit_cases() -> list[AgreementCase]:
             snapshot_times="0,0.01",
         ),
     ]
+
+
+def candidate_cases() -> list[AgreementCase]:
+    base = (
+        "max_step=200000",
+        "amr.plot_int=-1",
+    )
+    gresho_pressure_m0p01 = 1.0 / (1.4 * 0.01 * 0.01)
+
+    riemann_common = base + (
+        "amr.n_cell=400 5",
+        "amr.max_grid_size=100",
+        "geometry.prob_lo=0.0 0.0",
+        "geometry.prob_hi=1.0 0.1",
+        "geometry.is_periodic=0 0",
+        "prob.gamma=1.4",
+        "euler.problem=toro1",
+        "prob.test=1",
+        "prob.x0=0.5",
+        "euler.field_boundary=exact_dirichlet",
+        "euler.method=explicit",
+        "euler.spatial_order=2",
+        "euler.slope_limiter=minmod",
+        "stop_time=0.2",
+        "euler.cfl=0.4",
+    )
+    gresho_common = base + (
+        "amr.n_cell=32 32",
+        "amr.max_grid_size=16",
+        "geometry.prob_lo=-0.5 -0.5",
+        "geometry.prob_hi=0.5 0.5",
+        "geometry.is_periodic=0 0",
+        "euler.problem=gresho_vortex",
+        "euler.method=explicit",
+        "euler.spatial_order=2",
+        "euler.slope_limiter=minmod",
+        "euler.field_boundary=exact_dirichlet",
+        "euler.mach=0.01",
+        f"euler.pressure={gresho_pressure_m0p01:.17g}",
+        "euler.density_outer=1.0",
+        "euler.vortex_center=0.0 0.0",
+        "euler.gamma=1.4",
+        "stop_time=1.2566370614359172",
+        "euler.cfl=0.4",
+    )
+    advection_common = base + (
+        "amr.n_cell=128 128",
+        "amr.max_grid_size=32",
+        "geometry.prob_lo=0.0 0.0",
+        "geometry.prob_hi=1.0 1.0",
+        "geometry.is_periodic=1 1",
+        "euler.problem=advection_blob",
+        "euler.method=explicit",
+        "euler.spatial_order=2",
+        "euler.slope_limiter=minmod",
+        "stop_time=0.5",
+        "euler.cfl=0.4",
+    )
+    shock_common = base + (
+        "amr.n_cell=160 40",
+        "amr.max_grid_size=40",
+        "geometry.prob_lo=0 0",
+        "geometry.prob_hi=2 0.5",
+        "geometry.is_periodic=0 0",
+        "euler.problem=shock_density_bubble_2d",
+        "euler.method=explicit",
+        "euler.spatial_order=2",
+        "euler.slope_limiter=minmod",
+        "euler.shock_density_bubble_snapshot_times=0,0.03",
+        "stop_time=0.03",
+        "euler.cfl=0.45",
+    )
+
+    return [
+        AgreementCase(
+            "candidate_riemann_sod_n400_explicit_hllc",
+            riemann_common + ("euler.riemann=hllc",),
+        ),
+        AgreementCase(
+            "candidate_riemann_sod_n400_explicit_lowmach_hllcp",
+            riemann_common + ("euler.riemann=xie_am_hllc_p",),
+        ),
+        AgreementCase(
+            "candidate_gresho_m0p01_n32_explicit_hllc",
+            gresho_common + ("euler.riemann=hllc",),
+        ),
+        AgreementCase(
+            "candidate_gresho_m0p01_n32_explicit_lowmach_hllcp",
+            gresho_common + ("euler.riemann=xie_am_hllc_p",),
+        ),
+        AgreementCase(
+            "candidate_advection_blob_n128_explicit_hllc",
+            advection_common + ("euler.riemann=hllc",),
+        ),
+        AgreementCase(
+            "candidate_advection_blob_n128_explicit_lowmach_hllcp",
+            advection_common + ("euler.riemann=xie_am_hllc_p",),
+        ),
+        AgreementCase(
+            "candidate_shock_density_bubble_160x40_explicit_hllc",
+            shock_common + ("euler.riemann=hllc",),
+            snapshot_times="0,0.03",
+        ),
+        AgreementCase(
+            "candidate_shock_density_bubble_160x40_explicit_lowmach_hllcp",
+            shock_common + ("euler.riemann=xie_am_hllc_p",),
+            snapshot_times="0,0.03",
+        ),
+    ]
+
+
+def explicit_cases(case_set: str) -> list[AgreementCase]:
+    if case_set == "smoke":
+        return smoke_cases()
+    if case_set == "candidate":
+        return candidate_cases()
+    raise ValueError(f"unknown case set: {case_set}")
 
 
 def parse_key_values(path: Path) -> dict[str, str]:
@@ -236,6 +353,43 @@ def compare_csv(left_path: Path, right_path: Path) -> dict[str, str]:
     return result
 
 
+def compare_snapshot_dirs(left_dir: Path, right_dir: Path) -> dict[str, str]:
+    result = {
+        "snapshot_compare_status": "not_requested",
+        "snapshot_count": "0",
+        "snapshot_max_abs_diff": "",
+        "snapshot_text_mismatch_count": "0",
+    }
+    if not left_dir.exists() and not right_dir.exists():
+        return result
+    if not left_dir.exists() or not right_dir.exists():
+        result["snapshot_compare_status"] = "missing_snapshot_dir"
+        return result
+
+    left_files = {path.name: path for path in sorted(left_dir.glob("*.csv"))}
+    right_files = {path.name: path for path in sorted(right_dir.glob("*.csv"))}
+    result["snapshot_count"] = str(len(left_files))
+    if set(left_files) != set(right_files):
+        result["snapshot_compare_status"] = "snapshot_name_mismatch"
+        return result
+
+    max_diff = 0.0
+    text_mismatches = 0
+    for name in sorted(left_files):
+        comparison = compare_csv(left_files[name], right_files[name])
+        if comparison["csv_compare_status"] != "ok":
+            result["snapshot_compare_status"] = f"{name}:{comparison['csv_compare_status']}"
+            return result
+        if comparison["max_abs_diff"]:
+            max_diff = max(max_diff, float(comparison["max_abs_diff"]))
+        text_mismatches += int(comparison["text_mismatch_count"])
+
+    result["snapshot_compare_status"] = "ok"
+    result["snapshot_max_abs_diff"] = f"{max_diff:.17g}"
+    result["snapshot_text_mismatch_count"] = str(text_mismatches)
+    return result
+
+
 def run_with_timeout_manifest(
     command: list[str],
     *,
@@ -341,6 +495,8 @@ def run_case(
     mpi_ranks: int,
     tolerance: float,
     row_timeout_sec: float,
+    case_set: str,
+    output_class: str,
 ) -> dict[str, str]:
     fields_dir = output / "fields"
     logs_dir = output / "logs"
@@ -396,8 +552,8 @@ def run_case(
         manifest_path=serial_manifest,
         output_files=[serial_csv],
         output_globs=serial_globs,
-        output_class="exploratory",
-        notes="Serial side of explicit serial/MPI agreement smoke check.",
+        output_class=output_class,
+        notes=f"Serial side of explicit serial/MPI agreement {case_set} check.",
         cwd=root,
         timeout_sec=row_timeout_sec,
     )
@@ -412,8 +568,8 @@ def run_case(
         manifest_path=mpi_manifest,
         output_files=[mpi_csv],
         output_globs=mpi_globs,
-        output_class="exploratory",
-        notes=f"{mpi_ranks}-rank MPI side of explicit serial/MPI agreement smoke check.",
+        output_class=output_class,
+        notes=f"{mpi_ranks}-rank MPI side of explicit serial/MPI agreement {case_set} check.",
         cwd=root,
         timeout_sec=row_timeout_sec,
     )
@@ -425,7 +581,15 @@ def run_case(
     serial_failure = failure_from_log(serial_values, serial_status)
     mpi_failure = failure_from_log(mpi_values, mpi_status)
     comparison = compare_csv(serial_csv, mpi_csv)
+    snapshot_comparison = compare_snapshot_dirs(serial_snapshots, mpi_snapshots)
+    if case.snapshot_times and snapshot_comparison["snapshot_count"] == "0":
+        snapshot_comparison["snapshot_compare_status"] = "missing_snapshot_csv"
     max_diff = parse_float(comparison["max_abs_diff"]) if comparison["max_abs_diff"] else math.inf
+    snapshot_max_diff = (
+        parse_float(snapshot_comparison["snapshot_max_abs_diff"])
+        if snapshot_comparison["snapshot_max_abs_diff"]
+        else 0.0
+    )
     within_tolerance = (
         serial_returncode == 0
         and mpi_returncode == 0
@@ -434,12 +598,17 @@ def run_case(
         and serial_failure in {"ok", "none"}
         and mpi_failure in {"ok", "none"}
         and comparison["csv_compare_status"] == "ok"
+        and snapshot_comparison["snapshot_compare_status"] in {"not_requested", "ok"}
         and max_diff is not None
         and max_diff <= tolerance
+        and snapshot_max_diff is not None
+        and snapshot_max_diff <= tolerance
     )
 
     return {
         "row_id": case.row_id,
+        "case_set": case_set,
+        "output_class": output_class,
         "serial_returncode": str(serial_returncode),
         "mpi_returncode": str(mpi_returncode),
         "serial_status": serial_status,
@@ -447,6 +616,7 @@ def run_case(
         "serial_failure_category": serial_failure,
         "mpi_failure_category": mpi_failure,
         **comparison,
+        **snapshot_comparison,
         "tolerance": f"{tolerance:.17g}",
         "within_tolerance": "yes" if within_tolerance else "no",
         "serial_csv": str(serial_csv),
@@ -467,6 +637,18 @@ def main() -> int:
         default=None,
         help="Output directory. Defaults beside the source tree, not inside it.",
     )
+    parser.add_argument(
+        "--case-set",
+        choices=["smoke", "candidate"],
+        default="smoke",
+        help="Use small smoke rows or larger candidate pre-timing rows.",
+    )
+    parser.add_argument(
+        "--output-class",
+        choices=["exploratory", "candidate", "frozen"],
+        default=None,
+        help="Manifest output class. Defaults to exploratory for smoke and candidate for candidate rows.",
+    )
     parser.add_argument("--mpi-ranks", type=int, default=2)
     parser.add_argument("--mpirun", default="mpirun")
     parser.add_argument("--tolerance", type=float, default=1.0e-10)
@@ -474,7 +656,7 @@ def main() -> int:
         "--row-timeout-sec",
         type=float,
         default=120.0,
-        help="Maximum wall time for each serial or MPI side of a smoke row.",
+        help="Maximum wall time for each serial or MPI side of a row.",
     )
     parser.add_argument(
         "--force",
@@ -484,10 +666,13 @@ def main() -> int:
     args = parser.parse_args()
 
     root = args.root.resolve()
+    output_class = args.output_class or (
+        "candidate" if args.case_set == "candidate" else "exploratory"
+    )
     output = (
         args.output.resolve()
         if args.output
-        else root.parent / f"{root.name}_mpi_explicit_agreement"
+        else root.parent / f"{root.name}_mpi_explicit_{args.case_set}_agreement"
     )
     if output.exists():
         if not args.force:
@@ -505,7 +690,7 @@ def main() -> int:
         raise SystemExit(f"MPI launcher not found on PATH: {args.mpirun}")
 
     rows: list[dict[str, str]] = []
-    for case in explicit_cases():
+    for case in explicit_cases(args.case_set):
         row = run_case(
             case=case,
             root=root,
@@ -516,6 +701,8 @@ def main() -> int:
             mpi_ranks=args.mpi_ranks,
             tolerance=args.tolerance,
             row_timeout_sec=args.row_timeout_sec,
+            case_set=args.case_set,
+            output_class=output_class,
         )
         rows.append(row)
         print(
