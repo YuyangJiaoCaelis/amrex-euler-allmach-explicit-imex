@@ -65,6 +65,14 @@ A candidate row can support later MPI timing only if:
 This agreement matrix is not itself performance evidence. It is the gate before
 repeated timing runs and accuracy-versus-time plots.
 
+## Latest Local Result
+
+On 2026-05-28, the candidate matrix passed from clean commit
+`188d1dff4c36e0f5779e15a36fda82ad0ee3d868`. All eight rows matched serial and
+2-rank MPI CSV row counts with maximum numeric difference `0` at tolerance
+`1e-10`; shock rows also matched gathered snapshot CSVs. The summary artifact is
+`/tmp/report2_candidate_mpi_explicit_agreement_2026-05-28/summary.csv`.
+
 ## Not Yet Supported
 
 - CUDA/GPU claims: no local CUDA build or GPU run has passed.

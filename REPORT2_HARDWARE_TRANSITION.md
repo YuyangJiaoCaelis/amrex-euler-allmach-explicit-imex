@@ -47,6 +47,16 @@ row counts and had maximum absolute numeric difference 0 at tolerance `1e-10`.
 This is a launch, output-consistency, and small-grid numerical-agreement smoke
 check, not performance evidence.
 
+The first candidate pre-timing matrix was also run on 2026-05-28 from clean
+commit `188d1dff4c36e0f5779e15a36fda82ad0ee3d868`, using
+`scripts/run_mpi_explicit_agreement.py --case-set candidate`. It covered
+Riemann Sod `400x5`, Gresho Mach 0.01 `32x32`, periodic advection blob
+`128x128`, and shock-density-bubble `160x40` rows for HLLC and low-Mach HLLC-P.
+All eight serial/MPI CSV comparisons matched row counts and had maximum
+absolute numeric difference 0 at tolerance `1e-10`; shock rows also matched
+gathered snapshot CSVs. This is candidate numerical-agreement evidence, not MPI
+scaling or performance evidence.
+
 CUDA was not tested locally because `nvcc`, `nvidia-smi`, and Nsight tools were
 not available on this machine. A dry-run make parse reached the expected CUDA
 toolchain calls and reported missing CUDA tools.
