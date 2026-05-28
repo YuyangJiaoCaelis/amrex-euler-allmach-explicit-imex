@@ -82,6 +82,8 @@ A generated figure may become report evidence only when:
 
 Serial CPU wall time must be labelled as serial CPU timing. MPI, CUDA, GPU, or
 multi-core claims require separate backend runs and agreement checks.
+For explicit MPI work, run `scripts/run_mpi_explicit_agreement.py` as the
+small-grid smoke gate before starting candidate timing rows.
 
 ## Diagnostics And Audits
 

@@ -479,9 +479,6 @@ bool write_shock_density_bubble_snapshot(const amrex::MultiFab& state,
       cfg.shock_density_bubble_snapshot_dir.empty()) {
     return true;
   }
-  if (!amrex::ParallelDescriptor::IOProcessor()) {
-    return true;
-  }
 
   std::error_code ec;
   if (amrex::ParallelDescriptor::IOProcessor()) {
