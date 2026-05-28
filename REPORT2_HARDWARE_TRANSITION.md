@@ -57,6 +57,15 @@ absolute numeric difference 0 at tolerance `1e-10`; shock rows also matched
 gathered snapshot CSVs. This is candidate numerical-agreement evidence, not MPI
 scaling or performance evidence.
 
+A first candidate MPI rank scan was then run from clean commit
+`1b43ab09025a4b7ccd4d4d33d59f4b767d424389` with
+`scripts/run_mpi_explicit_rank_scan.py --case-set candidate --ranks 1,2,4
+--repeats 3`. All 72 launches passed. The local median driver-time trends show
+useful speedup for Riemann, advection, and low-Mach Gresho rows, weak scaling
+for the very small shock rows, and a 4-rank regression relative to 2 ranks for
+the small Gresho HLLC row. This is candidate local trend evidence, not frozen
+performance evidence.
+
 CUDA was not tested locally because `nvcc`, `nvidia-smi`, and Nsight tools were
 not available on this machine. A dry-run make parse reached the expected CUDA
 toolchain calls and reported missing CUDA tools.

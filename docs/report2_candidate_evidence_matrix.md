@@ -95,6 +95,18 @@ On 2026-05-28, the candidate matrix passed from clean commit
 `1e-10`; shock rows also matched gathered snapshot CSVs. The summary artifact is
 `/tmp/report2_candidate_mpi_explicit_agreement_2026-05-28/summary.csv`.
 
+The first candidate rank scan also passed on 2026-05-28 from clean commit
+`1b43ab09025a4b7ccd4d4d33d59f4b767d424389`:
+
+- command: `scripts/run_mpi_explicit_rank_scan.py --case-set candidate --ranks 1,2,4 --repeats 3`;
+- result: all 72 launches passed;
+- summary artifacts:
+  `/tmp/report2_candidate_mpi_rank_scan_2026-05-28/summary.csv` and
+  `/tmp/report2_candidate_mpi_rank_scan_2026-05-28/rank_summary.csv`.
+
+This rank scan is local candidate trend evidence only. It should guide the
+next frozen timing design, not be treated as final Report 2 performance data.
+
 ## Not Yet Supported
 
 - CUDA/GPU claims: no local CUDA build or GPU run has passed.
