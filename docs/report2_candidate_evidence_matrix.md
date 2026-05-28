@@ -107,6 +107,18 @@ The first candidate rank scan also passed on 2026-05-28 from clean commit
 This rank scan is local candidate trend evidence only. It should guide the
 next frozen timing design, not be treated as final Report 2 performance data.
 
+Use `scripts/plot_mpi_rank_scan.py` to turn a rank-scan output directory into
+candidate speedup/wall-time figures and an interpretation note:
+
+```sh
+python3 scripts/plot_mpi_rank_scan.py \
+  --input /tmp/report2_candidate_mpi_rank_scan_2026-05-28 \
+  --output /tmp/report2_candidate_mpi_rank_scan_figures_2026-05-28
+```
+
+The resulting frozen-run design is tracked in
+`docs/report2_mpi_timing_evidence_map.md`.
+
 ## Not Yet Supported
 
 - CUDA/GPU claims: no local CUDA build or GPU run has passed.

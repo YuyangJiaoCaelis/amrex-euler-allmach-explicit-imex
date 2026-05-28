@@ -53,6 +53,19 @@ Artifacts:
 
 - `/tmp/report2_candidate_mpi_rank_scan_2026-05-28/summary.csv`
 - `/tmp/report2_candidate_mpi_rank_scan_2026-05-28/rank_summary.csv`
+- `/tmp/report2_candidate_mpi_rank_scan_figures_2026-05-28/mpi_rank_scan_speedup.png`
+- `/tmp/report2_candidate_mpi_rank_scan_figures_2026-05-28/mpi_rank_scan_wall_time.png`
+- `/tmp/report2_candidate_mpi_rank_scan_figures_2026-05-28/mpi_rank_scan_interpretation.md`
+
+The candidate plotting command was:
+
+```sh
+python3 scripts/plot_mpi_rank_scan.py \
+  --input /tmp/report2_candidate_mpi_rank_scan_2026-05-28 \
+  --output /tmp/report2_candidate_mpi_rank_scan_figures_2026-05-28
+```
+
+Both PNG files were generated as `2530 x 1760` images and were non-empty.
 
 ## Claim Boundary
 
