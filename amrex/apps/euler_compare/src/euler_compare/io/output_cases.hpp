@@ -1,4 +1,53 @@
 // CSV, plotfile, snapshot, and error-output routines.
+std::string gather_text_to_io_processor(const std::string& local_text)
+{
+  const int root = amrex::ParallelDescriptor::IOProcessorNumber();
+  if (amrex::ParallelDescriptor::NProcs() == 1) {
+    return local_text;
+  }
+
+  if (local_text.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+    amrex::Abort("CSV output from one rank is too large for MPI Gatherv.");
+  }
+
+  const int local_count = static_cast<int>(local_text.size());
+  const std::vector<int> counts = amrex::ParallelDescriptor::Gather(local_count, root);
+  std::vector<int> offsets;
+  std::vector<char> gathered;
+  if (amrex::ParallelDescriptor::IOProcessor()) {
+    offsets.resize(counts.size(), 0);
+    int total_count = 0;
+    for (std::size_t n = 0; n < counts.size(); ++n) {
+      offsets[n] = total_count;
+      total_count += counts[n];
+    }
+    gathered.resize(static_cast<std::size_t>(total_count));
+  }
+
+  amrex::ParallelDescriptor::Gatherv(
+      local_text.data(), local_count, gathered.data(), counts, offsets, root);
+  if (!amrex::ParallelDescriptor::IOProcessor()) {
+    return std::string();
+  }
+  return std::string(gathered.begin(), gathered.end());
+}
+
+bool write_gathered_csv_file(const std::string& filename,
+                             const std::string& header,
+                             const std::string& local_body)
+{
+  const std::string gathered_body = gather_text_to_io_processor(local_body);
+  if (!amrex::ParallelDescriptor::IOProcessor()) {
+    return true;
+  }
+  std::ofstream out(filename);
+  if (!out) {
+    return false;
+  }
+  out << header << gathered_body;
+  return static_cast<bool>(out);
+}
+
 void write_plotfile(const amrex::MultiFab& state, const amrex::Geometry& geom, const RunConfig& cfg, int step,
                     amrex::Real time, bool force = false)
 {
@@ -20,18 +69,16 @@ void write_gresho_final_csv(const amrex::MultiFab& state, const amrex::Geometry&
   if (cfg.problem != ProblemKind::GreshoVortex || cfg.final_csv.empty()) {
     return;
   }
-  if (!amrex::ParallelDescriptor::IOProcessor()) {
-    return;
-  }
 
-  std::ofstream out(cfg.final_csv);
-  out << std::setprecision(17);
-  out << "x,y,rho,u,v,pressure,exact_rho,exact_u,exact_v,exact_pressure,"
-      << "density_error,velocity_error,pressure_error,pressure_perturbation_error,"
-      << "time,step,mach,method,riemann,imex_form,imex_predictor_flux,imex_predictor_dissipation,"
-      << "spatial_order,slope_limiter,"
-      << "imex_trial_density_run_min,"
-      << "imex_high_trial_pressure_run_min,imex_high_trial_internal_energy_run_min\n";
+  const std::string header =
+      "x,y,rho,u,v,pressure,exact_rho,exact_u,exact_v,exact_pressure,"
+      "density_error,velocity_error,pressure_error,pressure_perturbation_error,"
+      "time,step,mach,method,riemann,imex_form,imex_predictor_flux,imex_predictor_dissipation,"
+      "spatial_order,slope_limiter,"
+      "imex_trial_density_run_min,"
+      "imex_high_trial_pressure_run_min,imex_high_trial_internal_energy_run_min\n";
+  std::ostringstream rows;
+  rows << std::setprecision(17);
 
   const auto dx = geom.CellSizeArray();
   const auto plo = geom.ProbLoArray();
@@ -55,18 +102,19 @@ void write_gresho_final_csv(const amrex::MultiFab& state, const amrex::Geometry&
         const PrimitiveState exact = gresho_state(x, y, cfg);
         const amrex::Real du = numerical.u - exact.u;
         const amrex::Real dv = numerical.v - exact.v;
-        out << x << ',' << y << ',' << numerical.rho << ',' << numerical.u << ',' << numerical.v << ','
-            << numerical.p << ',' << exact.rho << ',' << exact.u << ',' << exact.v << ',' << exact.p << ','
-            << numerical.rho - exact.rho << ',' << std::sqrt(du * du + dv * dv) << ','
-            << numerical.p - exact.p << ',' << (numerical.p - p0) - (exact.p - p0) << ',' << time << ','
-            << step << ',' << cfg.mach << ',' << to_string(cfg.method) << ',' << riemann_label << ','
-            << imex_form_label << ',' << imex_predictor_flux << ',' << imex_predictor_dissipation << ','
-            << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
-            << high_trial_run.rho_min << ',' << high_trial_run.pressure_min << ','
-            << high_trial_run.internal_energy_min << '\n';
+        rows << x << ',' << y << ',' << numerical.rho << ',' << numerical.u << ',' << numerical.v << ','
+             << numerical.p << ',' << exact.rho << ',' << exact.u << ',' << exact.v << ',' << exact.p << ','
+             << numerical.rho - exact.rho << ',' << std::sqrt(du * du + dv * dv) << ','
+             << numerical.p - exact.p << ',' << (numerical.p - p0) - (exact.p - p0) << ',' << time << ','
+             << step << ',' << cfg.mach << ',' << to_string(cfg.method) << ',' << riemann_label << ','
+             << imex_form_label << ',' << imex_predictor_flux << ',' << imex_predictor_dissipation << ','
+             << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
+             << high_trial_run.rho_min << ',' << high_trial_run.pressure_min << ','
+             << high_trial_run.internal_energy_min << '\n';
       }
     }
   }
+  write_gathered_csv_file(cfg.final_csv, header, rows.str());
 }
 
 void write_toro_final_csv(const amrex::MultiFab& state, const amrex::Geometry& geom, const RunConfig& cfg)
@@ -74,14 +122,12 @@ void write_toro_final_csv(const amrex::MultiFab& state, const amrex::Geometry& g
   if (cfg.problem != ProblemKind::Toro1 || cfg.final_csv.empty()) {
     return;
   }
-  if (!amrex::ParallelDescriptor::IOProcessor()) {
-    return;
-  }
 
-  std::ofstream out(cfg.final_csv);
-  out << std::setprecision(17);
-  out << "i,j,x,y,rho,u,v,p,exact_rho,exact_u,exact_v,exact_p,"
-         "rho_error,u_error,v_error,p_error\n";
+  const std::string header =
+      "i,j,x,y,rho,u,v,p,exact_rho,exact_u,exact_v,exact_p,"
+      "rho_error,u_error,v_error,p_error\n";
+  std::ostringstream rows;
+  rows << std::setprecision(17);
 
   const auto dx = geom.CellSizeArray();
   const auto plo = geom.ProbLoArray();
@@ -97,13 +143,14 @@ void write_toro_final_csv(const amrex::MultiFab& state, const amrex::Geometry& g
             plo[1] + (static_cast<amrex::Real>(j) + amrex::Real(0.5)) * dx[1];
         const ConservedState c = load_cons(arr, i, j, 0);
         const PrimitiveState prim = to_primitive(c, cfg.gamma);
-        out << i << ',' << j << ',' << x << ',' << y << ',' << prim.rho << ','
-            << prim.u << ',' << prim.v << ',' << prim.p << ',' << nan << ','
-            << nan << ',' << nan << ',' << nan << ',' << nan << ',' << nan << ','
-            << nan << ',' << nan << '\n';
+        rows << i << ',' << j << ',' << x << ',' << y << ',' << prim.rho << ','
+             << prim.u << ',' << prim.v << ',' << prim.p << ',' << nan << ','
+             << nan << ',' << nan << ',' << nan << ',' << nan << ',' << nan << ','
+             << nan << ',' << nan << '\n';
       }
     }
   }
+  write_gathered_csv_file(cfg.final_csv, header, rows.str());
 }
 
 void write_riemann_quadrant_final_csv(const amrex::MultiFab& state,
@@ -115,16 +162,14 @@ void write_riemann_quadrant_final_csv(const amrex::MultiFab& state,
   if (cfg.problem != ProblemKind::RiemannQuadrant || cfg.final_csv.empty()) {
     return;
   }
-  if (!amrex::ParallelDescriptor::IOProcessor()) {
-    return;
-  }
 
-  std::ofstream out(cfg.final_csv);
-  out << std::setprecision(17);
-  out << "i,j,x,y,rho,u,v,p,initial_rho,initial_u,initial_v,initial_p,"
-         "time,step,method,riemann,spatial_order,slope_limiter,"
-         "field_boundary,geometry_is_periodic_x,geometry_is_periodic_y,"
-         "quadrant_case,claim_limit\n";
+  const std::string header =
+      "i,j,x,y,rho,u,v,p,initial_rho,initial_u,initial_v,initial_p,"
+      "time,step,method,riemann,spatial_order,slope_limiter,"
+      "field_boundary,geometry_is_periodic_x,geometry_is_periodic_y,"
+      "quadrant_case,claim_limit\n";
+  std::ostringstream rows;
+  rows << std::setprecision(17);
 
   const auto dx = geom.CellSizeArray();
   const auto plo = geom.ProbLoArray();
@@ -142,19 +187,20 @@ void write_riemann_quadrant_final_csv(const amrex::MultiFab& state,
         const PrimitiveState numerical =
             to_primitive(load_cons(arr, i, j, 0), cfg.gamma);
         const PrimitiveState initial = riemann_quadrant_state(x, y, cfg);
-        out << i << ',' << j << ',' << x << ',' << y << ','
-            << numerical.rho << ',' << numerical.u << ',' << numerical.v << ','
-            << numerical.p << ',' << initial.rho << ',' << initial.u << ','
-            << initial.v << ',' << initial.p << ',' << time << ',' << step << ','
-            << to_string(cfg.method) << ',' << riemann_label << ','
-            << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
-            << cfg.field_boundary << ',' << geom.isPeriodic(0) << ','
-            << geom.isPeriodic(1) << ','
-            << "liska_wendroff_clawpack_quadrant,"
-            << "genuine_2d_visual_finite_smoke_no_exact_solution\n";
+        rows << i << ',' << j << ',' << x << ',' << y << ','
+             << numerical.rho << ',' << numerical.u << ',' << numerical.v << ','
+             << numerical.p << ',' << initial.rho << ',' << initial.u << ','
+             << initial.v << ',' << initial.p << ',' << time << ',' << step << ','
+             << to_string(cfg.method) << ',' << riemann_label << ','
+             << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
+             << cfg.field_boundary << ',' << geom.isPeriodic(0) << ','
+             << geom.isPeriodic(1) << ','
+             << "liska_wendroff_clawpack_quadrant,"
+             << "genuine_2d_visual_finite_smoke_no_exact_solution\n";
       }
     }
   }
+  write_gathered_csv_file(cfg.final_csv, header, rows.str());
 }
 
 void write_advection_blob_final_csv(const amrex::MultiFab& state,
@@ -166,15 +212,13 @@ void write_advection_blob_final_csv(const amrex::MultiFab& state,
   if (cfg.problem != ProblemKind::AdvectionBlob || cfg.final_csv.empty()) {
     return;
   }
-  if (!amrex::ParallelDescriptor::IOProcessor()) {
-    return;
-  }
 
-  std::ofstream out(cfg.final_csv);
-  out << std::setprecision(17);
-  out << "x,y,rho,u,v,pressure,exact_rho,exact_u,exact_v,exact_pressure,"
-      << "density_error,velocity_error,pressure_error,time,step,method,riemann,"
-      << "spatial_order,slope_limiter,geometry_is_periodic_x,geometry_is_periodic_y\n";
+  const std::string header =
+      "x,y,rho,u,v,pressure,exact_rho,exact_u,exact_v,exact_pressure,"
+      "density_error,velocity_error,pressure_error,time,step,method,riemann,"
+      "spatial_order,slope_limiter,geometry_is_periodic_x,geometry_is_periodic_y\n";
+  std::ostringstream rows;
+  rows << std::setprecision(17);
 
   const auto dx = geom.CellSizeArray();
   const auto plo = geom.ProbLoArray();
@@ -195,17 +239,18 @@ void write_advection_blob_final_csv(const amrex::MultiFab& state,
         const PrimitiveState exact = exact_advection_blob_state(x, y, geom, cfg, time);
         const amrex::Real du = numerical.u - exact.u;
         const amrex::Real dv = numerical.v - exact.v;
-        out << x << ',' << y << ',' << numerical.rho << ',' << numerical.u << ','
-            << numerical.v << ',' << numerical.p << ',' << exact.rho << ','
-            << exact.u << ',' << exact.v << ',' << exact.p << ','
-            << numerical.rho - exact.rho << ',' << std::sqrt(du * du + dv * dv)
-            << ',' << numerical.p - exact.p << ',' << time << ',' << step << ','
-            << to_string(cfg.method) << ',' << riemann_label << ','
-            << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
-            << geom.isPeriodic(0) << ',' << geom.isPeriodic(1) << '\n';
+        rows << x << ',' << y << ',' << numerical.rho << ',' << numerical.u << ','
+             << numerical.v << ',' << numerical.p << ',' << exact.rho << ','
+             << exact.u << ',' << exact.v << ',' << exact.p << ','
+             << numerical.rho - exact.rho << ',' << std::sqrt(du * du + dv * dv)
+             << ',' << numerical.p - exact.p << ',' << time << ',' << step << ','
+             << to_string(cfg.method) << ',' << riemann_label << ','
+             << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
+             << geom.isPeriodic(0) << ',' << geom.isPeriodic(1) << '\n';
       }
     }
   }
+  write_gathered_csv_file(cfg.final_csv, header, rows.str());
 }
 
 struct LocalCellValues {
@@ -439,25 +484,22 @@ bool write_shock_density_bubble_snapshot(const amrex::MultiFab& state,
   }
 
   std::error_code ec;
-  std::filesystem::create_directories(cfg.shock_density_bubble_snapshot_dir, ec);
-  if (ec) {
-    return false;
+  if (amrex::ParallelDescriptor::IOProcessor()) {
+    std::filesystem::create_directories(cfg.shock_density_bubble_snapshot_dir, ec);
   }
 
   const std::string filename =
       shock_density_bubble_snapshot_filename(cfg.shock_density_bubble_snapshot_dir,
                                              snapshot_index, time, step);
-  std::ofstream out(filename);
-  if (!out) {
-    return false;
-  }
 
-  out << std::setprecision(17);
-  out << "source_case_id,step,time,i,j,x,y,rho,u,v,pressure,internal_energy,"
-         "schlieren,density_bubble_indicator,density_bubble_area_threshold,gamma,"
-         "method,scheme_name,riemann,spatial_order,validation_claim,gfm_used,"
-         "level_set_used,material_count,cylindrical_source_used,"
-         "geometric_source_form\n";
+  const std::string header =
+      "source_case_id,step,time,i,j,x,y,rho,u,v,pressure,internal_energy,"
+      "schlieren,density_bubble_indicator,density_bubble_area_threshold,gamma,"
+      "method,scheme_name,riemann,spatial_order,validation_claim,gfm_used,"
+      "level_set_used,material_count,cylindrical_source_used,"
+      "geometric_source_form\n";
+  std::ostringstream rows;
+  rows << std::setprecision(17);
 
   const auto dx = geom.CellSizeArray();
   const auto plo = geom.ProbLoArray();
@@ -484,27 +526,27 @@ bool write_shock_density_bubble_snapshot(const amrex::MultiFab& state,
             (arr(i, j + 1, 0, Rho) - arr(i, j - 1, 0, Rho)) /
             (amrex::Real(2.0) * dx[1]);
         const amrex::Real schlieren = std::sqrt(rho_x * rho_x + rho_y * rho_y);
-        out << shock_density_bubble_source_case_id(cfg) << ','
-            << step << ',' << time << ',' << i << ',' << j << ',' << x << ','
-            << y << ',' << q.rho << ',' << q.u << ',' << q.v << ',' << q.p
-            << ',' << internal << ',' << schlieren << ','
-            << (q.rho < threshold ? 1 : 0) << ',' << threshold << ','
-            << gamma << ',' << to_string(cfg.method) << ','
-            << shock_density_bubble_scheme_name(cfg) << ','
-            << (cfg.method == MethodKind::Imex ? "imex_pressure_split" : to_string(cfg.riemann))
-            << ',' << cfg.spatial_order << ','
-            << shock_density_bubble_validation_claim(cfg)
-            << ",false,false,1,"
-            << (shock_density_bubble_uses_cylindrical_source(cfg) ? "true" : "false")
-            << ','
-            << (shock_density_bubble_uses_cylindrical_source(cfg)
-                    ? "clawpack_radial_symmetry_fractional_source_step"
-                    : "none")
-            << "\n";
+        rows << shock_density_bubble_source_case_id(cfg) << ','
+             << step << ',' << time << ',' << i << ',' << j << ',' << x << ','
+             << y << ',' << q.rho << ',' << q.u << ',' << q.v << ',' << q.p
+             << ',' << internal << ',' << schlieren << ','
+             << (q.rho < threshold ? 1 : 0) << ',' << threshold << ','
+             << gamma << ',' << to_string(cfg.method) << ','
+             << shock_density_bubble_scheme_name(cfg) << ','
+             << (cfg.method == MethodKind::Imex ? "imex_pressure_split" : to_string(cfg.riemann))
+             << ',' << cfg.spatial_order << ','
+             << shock_density_bubble_validation_claim(cfg)
+             << ",false,false,1,"
+             << (shock_density_bubble_uses_cylindrical_source(cfg) ? "true" : "false")
+             << ','
+             << (shock_density_bubble_uses_cylindrical_source(cfg)
+                     ? "clawpack_radial_symmetry_fractional_source_step"
+                     : "none")
+             << "\n";
       }
     }
   }
-  return static_cast<bool>(out);
+  return write_gathered_csv_file(filename, header, rows.str());
 }
 
 void write_shock_density_bubble_summary_csv(
