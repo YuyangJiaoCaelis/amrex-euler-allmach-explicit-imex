@@ -1,5 +1,8 @@
 # MPI Rank-Scan Candidate Timing 2026-05-28
 
+Status: current candidate local MPI rank-scan timing note; not frozen report
+performance evidence.
+
 Branch: `codex/report2-next-research-step`
 
 Commit used for timing manifests: `1b43ab09025a4b7ccd4d4d33d59f4b767d424389`

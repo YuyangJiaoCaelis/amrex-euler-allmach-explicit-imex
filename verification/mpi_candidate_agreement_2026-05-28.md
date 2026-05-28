@@ -1,5 +1,7 @@
 # MPI Candidate Agreement Check 2026-05-28
 
+Status: current candidate explicit serial/MPI agreement evidence.
+
 Branch: `codex/report2-next-research-step`
 
 Commit: `188d1dff4c36e0f5779e15a36fda82ad0ee3d868`

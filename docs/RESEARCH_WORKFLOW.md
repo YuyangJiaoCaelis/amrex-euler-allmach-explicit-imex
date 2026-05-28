@@ -39,6 +39,11 @@ backtraces.
 Report-facing schemes are the documented selectors in `README.md`,
 `PROJECT_CODE_MAP.md`, and `README_PROJECT_SETTINGS.md`.
 
+For IMEX rows, the shared legacy `euler.imex_form` selector is not enough by
+itself. Report-facing commands, manifests, tables, and captions must preserve
+the emitted `imex_route_tag` so direct BDLTV20 paper-driver rows cannot be
+confused with the shock/source-map route.
+
 Exploratory schemes or diagnostic variants must not share a report-facing
 selector. If an exploratory implementation is needed, keep it on an experiment
 branch or behind an explicit build/runtime guard. Do not leave failed prototypes

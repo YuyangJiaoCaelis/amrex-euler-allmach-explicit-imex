@@ -416,6 +416,8 @@ int run_application(int argc, char* argv[])
                    << (cfg.method == MethodKind::Imex ? to_string(cfg.imex_form)
                                                        : "not_applicable")
                    << "\n";
+    amrex::Print() << "imex_route_tag=" << imex_route_tag(cfg) << "\n";
+    amrex::Print() << "bdltv20_paper_t1_s2=" << cfg.bdltv20_paper_t1_s2 << "\n";
     amrex::Print() << "imex_predictor_flux="
                    << (cfg.method == MethodKind::Imex
                            ? imex_predictor_flux_label(cfg.imex_form)

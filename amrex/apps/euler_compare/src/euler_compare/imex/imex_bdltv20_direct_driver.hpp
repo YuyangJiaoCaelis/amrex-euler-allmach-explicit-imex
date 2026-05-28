@@ -673,7 +673,9 @@ int run_bdltv20_paper_t1_s2(const RunConfig& cfg)
 	  if (!cfg.final_csv.empty() && amrex::ParallelDescriptor::IOProcessor()) {
 	    std::ofstream out(cfg.final_csv);
 	    out << std::setprecision(17);
-	    out << "x,y,rho,u,v,p,exact_rho,exact_u,exact_v,exact_p\n";
+	    out << "x,y,rho,u,v,p,exact_rho,exact_u,exact_v,exact_p,"
+          << "imex_route_tag,imex_form,bdltv20_paper_t1_s2,"
+          << "bdltv20_paper_epsilon\n";
     for (amrex::MFIter mfi(state); mfi.isValid(); ++mfi) {
       const amrex::Box& box = mfi.validbox();
       auto const arr = state.const_array(mfi);
@@ -694,7 +696,9 @@ int run_bdltv20_paper_t1_s2(const RunConfig& cfg)
                                     : gresho_state(x, y, cfg)));
           out << x << ',' << y << ',' << q.rho << ',' << q.u << ',' << q.v << ','
               << q.p << ',' << exact.rho << ',' << exact.u << ',' << exact.v
-              << ',' << exact.p << '\n';
+              << ',' << exact.p << ',' << imex_route_tag(cfg) << ','
+              << to_string(cfg.imex_form) << ',' << cfg.bdltv20_paper_t1_s2
+              << ',' << eps << '\n';
         }
       }
     }
@@ -705,6 +709,9 @@ int run_bdltv20_paper_t1_s2(const RunConfig& cfg)
   const bool passed = finished_time && solver_failure_count == 0 &&
                       nonfinite_count == 0 && nonpositive_count == 0;
   amrex::Print() << std::setprecision(17);
+  amrex::Print() << "method=" << to_string(cfg.method) << "\n";
+  amrex::Print() << "imex_form=" << to_string(cfg.imex_form) << "\n";
+  amrex::Print() << "imex_route_tag=" << imex_route_tag(cfg) << "\n";
   amrex::Print() << "bdltv20_paper_t1_s2=" << cfg.bdltv20_paper_t1_s2 << "\n";
   amrex::Print() << "bdltv20_paper_primary_source="
                  << "Boscheri_Dimarco_Loubere_Tavelli_Vignal_2020\n";

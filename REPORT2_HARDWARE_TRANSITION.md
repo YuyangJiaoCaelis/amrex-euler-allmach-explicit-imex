@@ -12,7 +12,7 @@ CPU/GPU performance package.
 |---|---|---|
 | AMReX data layout | Cell-centred `MultiFab` state, AMReX geometry, ghost cells, reductions, and plotfile support. | Suitable base for MPI/CUDA-oriented AMReX work. |
 | Explicit schemes | Reconstruction, boundary fills, flux updates, timesteps, and diagnostics use AMReX `MFIter`, `ParallelFor`, and reduction patterns in the report-facing path. A local 2-rank MPI smoke matrix now passes for the retained explicit Riemann, Gresho, advection-blob, and shock-density-bubble rows after making report CSV and shock snapshot output gather rank-local rows. | Promote the smoke gate to candidate/frozen report grids before using MPI timing claims. |
-| IMEX pressure solve | T1/S2 BDLTV20 pressure assembly and GMRES solve are isolated under `src/euler_compare/imex/`, using a host Eigen sparse solve for the current serial CPU evidence. | Needs a reviewed MPI/GPU pressure-solve path, or a clearly scoped CPU-only IMEX comparison, before hardware-efficiency claims. |
+| IMEX pressure solve | T1/S2 BDLTV20 pressure assembly and GMRES solve are isolated under `src/euler_compare/imex/`, using a host Eigen sparse solve for the current serial CPU evidence. The Report 2 route decision is recorded in `docs/imex_pressure_route_decision.md`. | IMEX remains serial CPU numerical-method evidence for the next stage; no MPI/GPU IMEX hardware-efficiency claims until a reviewed pressure-solve replacement exists. |
 | Output/analysis | CSV, snapshots, and plotting are separated from solver kernels. Per-cell report CSV/snapshot output gathers MPI rank-local rows to the I/O processor. | Timing can later exclude or separately report output cost. |
 | Test families | Riemann, Gresho, periodic advection blob, and same-gamma shock-density-bubble are retained. | These are the starting test set for CPU/GPU scaling and accuracy/cost comparisons. |
 
@@ -24,11 +24,10 @@ CPU/GPU performance package.
    confirm numerical agreement against the serial CPU baseline.
 3. Profile explicit kernels with AMReX TinyProfiler and, on GPU, NVIDIA Nsight
    or an equivalent CUDA profiler.
-4. Decide the IMEX hardware route:
-   - keep IMEX as a serial or multi-core CPU baseline and compare against
-     explicit CPU/GPU results with that limitation clearly stated; or
-   - replace the host Eigen pressure solve with a reviewed AMReX/MLMG or other
-     parallel sparse pressure-solve path and validate it before timing claims.
+4. Keep IMEX as a serial CPU numerical-method route for the next stage, as
+   recorded in `docs/imex_pressure_route_decision.md`. Any AMReX/MLMG or other
+   parallel pressure-solve replacement must be developed on a separate
+   experiment branch and validated before timing claims.
 5. Only after numerical agreement is established, produce accuracy-versus-time
    plots separated by hardware backend.
 
@@ -69,6 +68,10 @@ performance evidence.
 CUDA was not tested locally because `nvcc`, `nvidia-smi`, and Nsight tools were
 not available on this machine. A dry-run make parse reached the expected CUDA
 toolchain calls and reported missing CUDA tools.
+
+The current IMEX hardware route decision is: explicit schemes are the first
+MPI/CUDA timing target; IMEX remains serial CPU host-GMRES evidence until a
+separate pressure-solver project is reviewed and validated.
 
 ## Architecture Rule For Future Work
 

@@ -1,5 +1,8 @@
 # Full Reproduction Record
 
+Status: current Report 1 reproduction record; Report 2 frozen evidence should
+be recorded separately.
+
 ## Scope
 
 This run regenerated the full AMReX evidence set from the structured source

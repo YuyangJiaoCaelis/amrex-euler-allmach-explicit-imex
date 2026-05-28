@@ -10,6 +10,10 @@ The report settings are defined by the scripts and commands in `PROJECT_PLOT_REP
 | Explicit O2 Low-Mach Corrected HLLC-P | `euler.method=explicit`, `euler.spatial_order=2`, `euler.riemann=xie_am_hllc_p` |
 | IMEX T1/S2 BDLTV20 | `euler.method=imex`, `euler.spatial_order=2`, `euler.imex_form=bdltv20_t1_s2_source_map_picard` |
 
+For IMEX rows, use the emitted `imex_route_tag` to distinguish the direct
+BDLTV20 paper driver from the shock-adapted source-map route:
+`bdltv20_direct_paper_driver` versus `bdltv20_source_map`.
+
 ## Test Settings
 
 | Test group | Boundary and time settings |

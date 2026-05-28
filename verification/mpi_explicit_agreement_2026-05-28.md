@@ -1,5 +1,9 @@
 # MPI Explicit Agreement Check 2026-05-28
 
+Status: superseded for candidate evidence by
+`verification/mpi_candidate_agreement_2026-05-28.md`; retained as the original
+small-grid MPI smoke record.
+
 Branch: `exp/mpi-explicit-agreement`
 
 Purpose: establish a compact local serial-vs-2-rank-MPI smoke gate for the

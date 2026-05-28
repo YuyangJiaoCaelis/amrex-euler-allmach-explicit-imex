@@ -195,6 +195,17 @@ const char* imex_predictor_flux_label(ImexFormKind)
   return "bdltv20_pressure_split_lf";
 }
 
+const char* imex_route_tag(const RunConfig& cfg)
+{
+  if (cfg.method != MethodKind::Imex) {
+    return "not_applicable";
+  }
+  if (cfg.bdltv20_paper_t1_s2 != "off") {
+    return "bdltv20_direct_paper_driver";
+  }
+  return "bdltv20_source_map";
+}
+
 bool is_bdltv20_t1_s2_source_map_form(ImexFormKind)
 {
   return true;

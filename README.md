@@ -33,7 +33,12 @@ The project figures use the three scheme selectors below. For code reading, star
 | Explicit O2 Low-Mach Corrected HLLC-P | `euler.method=explicit`, `euler.spatial_order=2`, `euler.riemann=xie_am_hllc_p` |
 | IMEX T1/S2 BDLTV20 | `euler.method=imex`, `euler.imex_form=bdltv20_t1_s2_source_map_picard`, `euler.spatial_order=2` |
 
-The shock-density-bubble evidence uses a single-material same-gamma Cartesian case. The AMReX driver is compiled as one application, so the supplied GNUmake build is the same build used for all reproduced runs. The selectable IMEX path is the BDLTV20 T1/S2 source-map pressure-split scheme.
+IMEX outputs also emit `imex_route_tag`: `bdltv20_direct_paper_driver` for
+direct BDLTV20 paper-driver rows selected by non-`off`
+`euler.bdltv20_paper_t1_s2`, and `bdltv20_source_map` for the shock-adapted
+source-map route. The shock-density-bubble evidence uses a single-material
+same-gamma Cartesian case. The AMReX driver is compiled as one application, so
+the supplied GNUmake build is the same build used for all reproduced runs.
 
 ## Build
 

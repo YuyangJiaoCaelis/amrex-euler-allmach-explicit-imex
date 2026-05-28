@@ -1,5 +1,8 @@
 # Report 2 Hardware Transition Check - 2026-05-28
 
+Status: current local hardware-transition check; no CUDA hardware was available
+locally.
+
 Scope: local build and MPI smoke check on macOS ARM64. This is not performance
 evidence.
 

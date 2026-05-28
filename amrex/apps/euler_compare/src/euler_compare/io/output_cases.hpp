@@ -73,7 +73,8 @@ void write_gresho_final_csv(const amrex::MultiFab& state, const amrex::Geometry&
   const std::string header =
       "x,y,rho,u,v,pressure,exact_rho,exact_u,exact_v,exact_pressure,"
       "density_error,velocity_error,pressure_error,pressure_perturbation_error,"
-      "time,step,mach,method,riemann,imex_form,imex_predictor_flux,imex_predictor_dissipation,"
+      "time,step,mach,method,riemann,imex_form,imex_route_tag,bdltv20_paper_t1_s2,"
+      "imex_predictor_flux,imex_predictor_dissipation,"
       "spatial_order,slope_limiter,"
       "imex_trial_density_run_min,"
       "imex_high_trial_pressure_run_min,imex_high_trial_internal_energy_run_min\n";
@@ -85,6 +86,7 @@ void write_gresho_final_csv(const amrex::MultiFab& state, const amrex::Geometry&
   const amrex::Real p0 = cfg.pressure;
   const char* riemann_label = cfg.method == MethodKind::Imex ? "not_applicable" : to_string(cfg.riemann);
   const char* imex_form_label = cfg.method == MethodKind::Imex ? to_string(cfg.imex_form) : "not_applicable";
+  const char* route_tag = imex_route_tag(cfg);
   const char* imex_predictor_flux =
       cfg.method == MethodKind::Imex ? imex_predictor_flux_label(cfg.imex_form) : "not_applicable";
   const char* imex_predictor_dissipation =
@@ -107,7 +109,8 @@ void write_gresho_final_csv(const amrex::MultiFab& state, const amrex::Geometry&
              << numerical.rho - exact.rho << ',' << std::sqrt(du * du + dv * dv) << ','
              << numerical.p - exact.p << ',' << (numerical.p - p0) - (exact.p - p0) << ',' << time << ','
              << step << ',' << cfg.mach << ',' << to_string(cfg.method) << ',' << riemann_label << ','
-             << imex_form_label << ',' << imex_predictor_flux << ',' << imex_predictor_dissipation << ','
+             << imex_form_label << ',' << route_tag << ',' << cfg.bdltv20_paper_t1_s2 << ','
+             << imex_predictor_flux << ',' << imex_predictor_dissipation << ','
              << cfg.spatial_order << ',' << to_string(cfg.slope_limiter) << ','
              << high_trial_run.rho_min << ',' << high_trial_run.pressure_min << ','
              << high_trial_run.internal_energy_min << '\n';
@@ -492,7 +495,8 @@ bool write_shock_density_bubble_snapshot(const amrex::MultiFab& state,
   const std::string header =
       "source_case_id,step,time,i,j,x,y,rho,u,v,pressure,internal_energy,"
       "schlieren,density_bubble_indicator,density_bubble_area_threshold,gamma,"
-      "method,scheme_name,riemann,spatial_order,validation_claim,gfm_used,"
+      "method,scheme_name,riemann,spatial_order,validation_claim,"
+      "imex_route_tag,bdltv20_paper_t1_s2,imex_form,gfm_used,"
       "level_set_used,material_count,cylindrical_source_used,"
       "geometric_source_form\n";
   std::ostringstream rows;
@@ -533,6 +537,9 @@ bool write_shock_density_bubble_snapshot(const amrex::MultiFab& state,
              << (cfg.method == MethodKind::Imex ? "imex_pressure_split" : to_string(cfg.riemann))
              << ',' << cfg.spatial_order << ','
              << shock_density_bubble_validation_claim(cfg)
+             << ',' << imex_route_tag(cfg) << ',' << cfg.bdltv20_paper_t1_s2
+             << ',' << (cfg.method == MethodKind::Imex ? to_string(cfg.imex_form)
+                                                        : "not_applicable")
              << ",false,false,1,"
              << (shock_density_bubble_uses_cylindrical_source(cfg) ? "true" : "false")
              << ','
@@ -583,7 +590,8 @@ void write_shock_density_bubble_summary_csv(
          "dt_mean,rho_min,rho_max,pressure_min,pressure_max,internal_energy_min,"
          "nonfinite_count,density_bubble_centroid_x,density_bubble_centroid_y,"
          "density_bubble_area_threshold,schlieren_max,snapshot_status,snapshot_dir,"
-         "validation_claim,gfm_used,level_set_used,material_count,"
+         "validation_claim,imex_route_tag,bdltv20_paper_t1_s2,imex_form,"
+         "gfm_used,level_set_used,material_count,"
          "cylindrical_source_used,geometric_source_form\n";
 
   const auto plo = geom.ProbLoArray();
@@ -618,6 +626,9 @@ void write_shock_density_bubble_summary_csv(
       << ',' << snapshot_status << ','
       << csv_escape(cfg.shock_density_bubble_snapshot_dir)
       << ',' << shock_density_bubble_validation_claim(cfg)
+      << ',' << imex_route_tag(cfg) << ',' << cfg.bdltv20_paper_t1_s2
+      << ',' << (cfg.method == MethodKind::Imex ? to_string(cfg.imex_form)
+                                                 : "not_applicable")
       << ",false,false,1,"
       << (shock_density_bubble_uses_cylindrical_source(cfg) ? "true" : "false")
       << ','

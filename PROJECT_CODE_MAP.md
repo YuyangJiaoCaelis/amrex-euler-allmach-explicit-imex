@@ -40,6 +40,10 @@ For the high-level data flow, see `ARCHITECTURE.md`.
 | Explicit O2 Low-Mach Corrected HLLC-P | `euler.method=explicit`, `euler.spatial_order=2`, `euler.riemann=xie_am_hllc_p` |
 | IMEX T1/S2 BDLTV20 | `euler.method=imex`, `euler.spatial_order=2`, `euler.imex_form=bdltv20_t1_s2_source_map_picard` |
 
+IMEX report rows must also be read with the emitted `imex_route_tag`:
+`bdltv20_direct_paper_driver` for direct BDLTV20 paper-driver rows and
+`bdltv20_source_map` for the shock-adapted source-map route.
+
 ## Report-Facing Problem Selectors
 
 | Report evidence | Runtime selector |

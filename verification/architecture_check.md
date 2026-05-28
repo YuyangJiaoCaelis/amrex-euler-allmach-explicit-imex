@@ -1,5 +1,8 @@
 # Architecture Check
 
+Status: current architecture and serial smoke baseline; route-stamp reruns are
+tracked separately when promoted.
+
 ## Scope
 
 This check verifies the organised AMReX Euler source tree before longer
